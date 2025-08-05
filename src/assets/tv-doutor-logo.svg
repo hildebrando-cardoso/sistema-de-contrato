@@ -1,0 +1,22 @@
+<svg width="200" height="80" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="40" cy="40" r="35" fill="#1e40af" stroke="#3b82f6" stroke-width="2"/>
+  
+  <!-- Medical cross -->
+  <rect x="32" y="25" width="6" height="30" fill="white" rx="1"/>
+  <rect x="25" y="32" width="30" height="6" fill="white" rx="1"/>
+  
+  <!-- TV screen -->
+  <rect x="85" y="20" width="60" height="40" fill="#1e40af" stroke="#3b82f6" stroke-width="2" rx="4"/>
+  <rect x="90" y="25" width="50" height="30" fill="#dbeafe" rx="2"/>
+  
+  <!-- TV stand -->
+  <rect x="105" y="60" width="20" height="8" fill="#1e40af"/>
+  
+  <!-- Text "TV DOUTOR" -->
+  <text x="160" y="35" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1e40af">TV</text>
+  <text x="160" y="55" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1e40af">DOUTOR</text>
+  
+  <!-- Medical pulse line -->
+  <path d="M 85 70 Q 95 65 105 70 Q 115 75 125 70 Q 135 65 145 70" stroke="#3b82f6" stroke-width="2" fill="none"/>
+</svg> 
