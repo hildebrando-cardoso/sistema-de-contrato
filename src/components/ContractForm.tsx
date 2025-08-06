@@ -7,297 +7,47 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
-import { Trash2, Plus, Send } from "lucide-react";
-
-interface Contractor {
-  contractorName: string;
-  contractorCNPJ: string;
-  contractorAddress: string;
-  legalRepresentative: string;
-  representativeCPF: string;
-}
-
-interface ContractData {
-  numberOfContractors: number;
-  contractors: Contractor[];
-  cityState: string;
-  signatureDate: string;
-  contractedPlan: string;
-  implementationValue: string;
-  monthlyValue: string;
-  paymentMethod: string;
-  dueDate: string;
-  contractTerm: string;
-  equipment43: string;
-  equipment55: string;
-  players: string;
-}
+import { Trash2, Plus, Send, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useContractForm } from "@/hooks/use-contract-form";
+import { FormProgressIndicator } from "@/components/FormProgressIndicator";
 
 interface ContractFormProps {
-  onContractGenerated: (contract: string, data: ContractData) => void;
+  onContractGenerated: (contract: string, data: any) => void;
 }
 
 export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
   const navigate = useNavigate();
-  const [contractData, setContractData] = useState<ContractData>({
-    numberOfContractors: 1,
-    contractors: [{
-      contractorName: "",
-      contractorCNPJ: "",
-      contractorAddress: "",
-      legalRepresentative: "",
-      representativeCPF: "",
-    }],
-    cityState: "",
-    signatureDate: "",
-    contractedPlan: "",
-    implementationValue: "",
-    monthlyValue: "",
-    paymentMethod: "",
-    dueDate: "",
-    contractTerm: "12",
-    equipment43: "",
-    equipment55: "",
-    players: "",
-  });
-  
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSendingToWebhook, setIsSendingToWebhook] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
+  
+  const {
+    contractData,
+    validationErrors,
+    isGenerating,
+    isSendingToWebhook,
+    formProgress,
+    handleInputChange,
+    handleContractorChange,
+    addContractor,
+    removeContractor,
+    sendToWebhook,
+    generateContract,
+    formatCNPJ,
+    formatCPF,
+  } = useContractForm();
 
-  const handleInputChange = (field: keyof ContractData, value: string) => {
-    setContractData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-
-    // Lógica para calcular valores baseados no plano selecionado
-    if (field === 'contractedPlan') {
-      const implementationValue = "R$ 249,00"; // Valor fixo por ponto
-      let monthlyValue = "";
-
-      if (value === "cuidar-educar-especialidades") {
-        monthlyValue = "R$ 0,00";
-      } else if (value === "cuidar-educar-exclusivo") {
-        monthlyValue = "R$ 199,00";
-      }
-
-      setContractData(prev => ({
-        ...prev,
-        implementationValue,
-        monthlyValue
-      }));
+  const handleSendToWebhook = async () => {
+    const result = await sendToWebhook();
+    if (result?.success) {
+      navigate('/processing');
     }
   };
 
-  const handleContractorChange = (index: number, field: keyof Contractor, value: string) => {
-    setContractData(prev => ({
-      ...prev,
-      contractors: prev.contractors.map((contractor, i) => 
-        i === index ? { ...contractor, [field]: value } : contractor
-      )
-    }));
-  };
-
-  const addContractor = () => {
-    setContractData(prev => ({
-      ...prev,
-      numberOfContractors: prev.numberOfContractors + 1,
-      contractors: [...prev.contractors, {
-        contractorName: "",
-        contractorCNPJ: "",
-        contractorAddress: "",
-        legalRepresentative: "",
-        representativeCPF: "",
-      }]
-    }));
-  };
-
-  const removeContractor = (index: number) => {
-    if (contractData.numberOfContractors > 1) {
-      setContractData(prev => ({
-        ...prev,
-        numberOfContractors: prev.numberOfContractors - 1,
-        contractors: prev.contractors.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    // Validate general fields
-    const generalFields: (keyof Omit<ContractData, 'contractors' | 'numberOfContractors'>)[] = [
-      'cityState', 'signatureDate', 'contractedPlan', 'implementationValue', 
-      'monthlyValue', 'paymentMethod', 'dueDate', 'contractTerm', 
-      'equipment43', 'equipment55', 'players'
-    ];
-
-    for (const field of generalFields) {
-      if (!contractData[field]) {
-        toast({
-          title: "Campo obrigatório",
-          description: `O campo "${getFieldLabel(field)}" é obrigatório.`,
-          variant: "destructive",
-        });
-        setActiveTab("general");
-        return false;
-      }
-    }
-
-    // Validate contractors
-    for (let i = 0; i < contractData.contractors.length; i++) {
-      const contractor = contractData.contractors[i];
-      const contractorFields: (keyof Contractor)[] = [
-        'contractorName', 'contractorCNPJ', 'contractorAddress', 
-        'legalRepresentative', 'representativeCPF'
-      ];
-
-      for (const field of contractorFields) {
-        if (!contractor[field]) {
-          toast({
-            title: "Campo obrigatório",
-            description: `O campo "${getFieldLabel(field)}" do contratante ${i + 1} é obrigatório.`,
-            variant: "destructive",
-          });
-          setActiveTab("contractors");
-          return false;
-        }
-      }
-    }
-    return true;
-  };
-
-  const getFieldLabel = (field: string): string => {
-    const labels: Record<string, string> = {
-      contractorName: "Nome da Contratante",
-      contractorCNPJ: "CNPJ da Contratante",
-      contractorAddress: "Endereço da Contratante",
-      legalRepresentative: "Representante Legal",
-      representativeCPF: "CPF do Representante",
-      cityState: "Cidade e Estado",
-      signatureDate: "Data de Assinatura",
-      contractedPlan: "Plano Contratado",
-      implementationValue: "Valor da Implantação",
-      monthlyValue: "Plano Mensal",
-      paymentMethod: "Forma de Pagamento",
-      dueDate: "Data de Vencimento",
-      contractTerm: "Prazo de Contrato",
-      equipment43: "Equipamentos 43\"",
-      equipment55: "Equipamentos 55\"",
-      players: "Players",
-      numberOfContractors: "Número de Contratantes",
-    };
-    return labels[field] || field;
-  };
-
-  const sendToWebhook = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSendingToWebhook(true);
-    
-    try {
-      const webhookUrl = 'https://webhook.n8n.smartdoutor.com.br/webhook-test/gerar-contrato-tv-doutor';
-      
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contractData,
-          timestamp: new Date().toISOString(),
-          source: 'Sistema de Contrato - TV Doutor'
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Dados enviados com sucesso!",
-          description: "Iniciando processamento do contrato...",
-        });
-        
-        // Redirecionar para a tela de processamento
-        navigate('/processing');
-      } else {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Erro ao enviar para webhook:', error);
-      toast({
-        title: "Erro ao enviar dados",
-        description: "Ocorreu um erro ao enviar os dados para o webhook. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingToWebhook(false);
-    }
-  };
-
-  const generateContract = async (e: React.FormEvent) => {
+  const handleGenerateContract = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsGenerating(true);
-    
-    try {
-      // Simular processamento
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Gerar texto do contrato
-      const contractorsList = contractData.contractors.map((contractor, index) => 
-        `CONTRATANTE ${index + 1}: ${contractor.contractorName}
-CNPJ: ${contractor.contractorCNPJ}
-ENDEREÇO: ${contractor.contractorAddress}
-REPRESENTANTE LEGAL: ${contractor.legalRepresentative}
-CPF: ${contractor.representativeCPF}`
-      ).join('\n\n');
-
-      const generatedContract = `
-CONTRATO DE PRESTAÇÃO DE SERVIÇOS
-PROGRAMA "${contractData.contractedPlan.toUpperCase()}"
-
-${contractorsList}
-
-CIDADE/ESTADO: ${contractData.cityState}
-DATA: ${contractData.signatureDate}
-
-PLANO CONTRATADO: ${contractData.contractedPlan}
-
-VALORES:
-- Implantação: ${contractData.implementationValue}
-- Plano Mensal: ${contractData.monthlyValue}
-
-FORMA DE PAGAMENTO: ${contractData.paymentMethod}
-DATA DE VENCIMENTO: ${contractData.dueDate}
-PRAZO DE CONTRATO: ${contractData.contractTerm} meses (renovação automática)
-
-EQUIPAMENTOS (COMODATO):
-- Monitores 43": ${contractData.equipment43} unidades
-- Monitores 55": ${contractData.equipment55} unidades  
-- Players: ${contractData.players} unidades
-
-[Aqui seria inserido o texto completo do contrato com as 19 cláusulas e Anexo I]
-      `.trim();
-
-      onContractGenerated(generatedContract, contractData);
-      
-      toast({
-        title: "Contrato gerado com sucesso!",
-        description: "O contrato foi gerado e está pronto para visualização.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao gerar contrato",
-        description: "Ocorreu um erro durante a geração. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
+    const result = await generateContract();
+    if (result?.success && result.contract) {
+      onContractGenerated(result.contract, result.data);
     }
   };
 
@@ -311,10 +61,17 @@ EQUIPAMENTOS (COMODATO):
           <p className="text-muted-foreground mt-2">
             Sistema de Contratos Digitais
           </p>
+          
+          {/* Indicador de Progresso Melhorado */}
+          <FormProgressIndicator 
+            progress={formProgress}
+            currentTab={activeTab}
+            validationErrors={validationErrors}
+          />
         </CardHeader>
         
         <CardContent className="p-8">
-          <form onSubmit={generateContract} className="space-y-6">
+          <form onSubmit={handleGenerateContract} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="general">Dados Gerais</TabsTrigger>
@@ -333,7 +90,10 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.contractedPlan}
                       onValueChange={(value) => handleInputChange('contractedPlan', value)}
                     >
-                      <SelectTrigger className="border-medical-primary/20 focus:border-medical-primary">
+                      <SelectTrigger className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.contractedPlan && "border-red-500"
+                      )}>
                         <SelectValue placeholder="Selecione o plano" />
                       </SelectTrigger>
                       <SelectContent>
@@ -345,6 +105,12 @@ EQUIPAMENTOS (COMODATO):
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    {validationErrors.contractedPlan && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.contractedPlan}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -356,9 +122,19 @@ EQUIPAMENTOS (COMODATO):
                       type="date"
                       value={contractData.signatureDate}
                       onChange={(e) => handleInputChange('signatureDate', e.target.value)}
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.signatureDate && "border-red-500"
+                      )}
                       required
+                      aria-describedby={validationErrors.signatureDate ? "signatureDate-error" : undefined}
                     />
+                    {validationErrors.signatureDate && (
+                      <p id="signatureDate-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.signatureDate}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -370,9 +146,19 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.cityState}
                       onChange={(e) => handleInputChange('cityState', e.target.value)}
                       placeholder="Ex: São Paulo, SP"
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.cityState && "border-red-500"
+                      )}
                       required
+                      aria-describedby={validationErrors.cityState ? "cityState-error" : undefined}
                     />
+                    {validationErrors.cityState && (
+                      <p id="cityState-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.cityState}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -387,10 +173,20 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.implementationValue}
                       onChange={(e) => handleInputChange('implementationValue', e.target.value)}
                       placeholder="R$ 249,00"
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.implementationValue && "border-red-500"
+                      )}
                       required
                       readOnly
+                      aria-describedby={validationErrors.implementationValue ? "implementationValue-error" : undefined}
                     />
+                    {validationErrors.implementationValue && (
+                      <p id="implementationValue-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.implementationValue}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -402,10 +198,20 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.monthlyValue}
                       onChange={(e) => handleInputChange('monthlyValue', e.target.value)}
                       placeholder="R$ 0,00"
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.monthlyValue && "border-red-500"
+                      )}
                       required
                       readOnly
+                      aria-describedby={validationErrors.monthlyValue ? "monthlyValue-error" : undefined}
                     />
+                    {validationErrors.monthlyValue && (
+                      <p id="monthlyValue-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.monthlyValue}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -419,7 +225,10 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.paymentMethod}
                       onValueChange={(value) => handleInputChange('paymentMethod', value)}
                     >
-                      <SelectTrigger className="border-medical-primary/20 focus:border-medical-primary">
+                      <SelectTrigger className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.paymentMethod && "border-red-500"
+                      )}>
                         <SelectValue placeholder="Selecione a forma de pagamento" />
                       </SelectTrigger>
                       <SelectContent>
@@ -428,6 +237,12 @@ EQUIPAMENTOS (COMODATO):
                         <SelectItem value="boleto">Boleto</SelectItem>
                       </SelectContent>
                     </Select>
+                    {validationErrors.paymentMethod && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.paymentMethod}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -439,9 +254,19 @@ EQUIPAMENTOS (COMODATO):
                       type="date"
                       value={contractData.dueDate}
                       onChange={(e) => handleInputChange('dueDate', e.target.value)}
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.dueDate && "border-red-500"
+                      )}
                       required
+                      aria-describedby={validationErrors.dueDate ? "dueDate-error" : undefined}
                     />
+                    {validationErrors.dueDate && (
+                      <p id="dueDate-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.dueDate}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -452,7 +277,10 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.contractTerm}
                       onValueChange={(value) => handleInputChange('contractTerm', value)}
                     >
-                      <SelectTrigger className="border-medical-primary/20 focus:border-medical-primary">
+                      <SelectTrigger className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.contractTerm && "border-red-500"
+                      )}>
                         <SelectValue placeholder="Selecione o prazo" />
                       </SelectTrigger>
                       <SelectContent>
@@ -461,6 +289,12 @@ EQUIPAMENTOS (COMODATO):
                         <SelectItem value="36">36 meses (renovação automática)</SelectItem>
                       </SelectContent>
                     </Select>
+                    {validationErrors.contractTerm && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.contractTerm}
+                      </p>
+                    )}
                   </div>
                 </div>
               </TabsContent>
@@ -513,9 +347,19 @@ EQUIPAMENTOS (COMODATO):
                             value={contractor.contractorName}
                             onChange={(e) => handleContractorChange(index, 'contractorName', e.target.value)}
                             placeholder="Digite o nome da empresa contratante"
-                            className="border-medical-primary/20 focus:border-medical-primary"
+                            className={cn(
+                              "border-medical-primary/20 focus:border-medical-primary",
+                              validationErrors[`contractor-${index}-contractorName`] && "border-red-500"
+                            )}
                             required
+                            aria-describedby={validationErrors[`contractor-${index}-contractorName`] ? `contractorName-${index}-error` : undefined}
                           />
+                          {validationErrors[`contractor-${index}-contractorName`] && (
+                            <p id={`contractorName-${index}-error`} className="text-sm text-red-500 flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4" />
+                              {validationErrors[`contractor-${index}-contractorName`]}
+                            </p>
+                          )}
                         </div>
                         
                         <div className="space-y-2">
@@ -525,11 +369,25 @@ EQUIPAMENTOS (COMODATO):
                           <Input
                             id={`contractorCNPJ-${index}`}
                             value={contractor.contractorCNPJ}
-                            onChange={(e) => handleContractorChange(index, 'contractorCNPJ', e.target.value)}
+                            onChange={(e) => {
+                              const formatted = formatCNPJ(e.target.value);
+                              handleContractorChange(index, 'contractorCNPJ', formatted);
+                            }}
                             placeholder="00.000.000/0000-00"
-                            className="border-medical-primary/20 focus:border-medical-primary"
+                            className={cn(
+                              "border-medical-primary/20 focus:border-medical-primary",
+                              validationErrors[`contractor-${index}-contractorCNPJ`] && "border-red-500"
+                            )}
                             required
+                            maxLength={18}
+                            aria-describedby={validationErrors[`contractor-${index}-contractorCNPJ`] ? `contractorCNPJ-${index}-error` : undefined}
                           />
+                          {validationErrors[`contractor-${index}-contractorCNPJ`] && (
+                            <p id={`contractorCNPJ-${index}-error`} className="text-sm text-red-500 flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4" />
+                              {validationErrors[`contractor-${index}-contractorCNPJ`]}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -542,10 +400,20 @@ EQUIPAMENTOS (COMODATO):
                           value={contractor.contractorAddress}
                           onChange={(e) => handleContractorChange(index, 'contractorAddress', e.target.value)}
                           placeholder="Digite o endereço completo"
-                          className="border-medical-primary/20 focus:border-medical-primary"
+                          className={cn(
+                            "border-medical-primary/20 focus:border-medical-primary",
+                            validationErrors[`contractor-${index}-contractorAddress`] && "border-red-500"
+                          )}
                           rows={3}
                           required
+                          aria-describedby={validationErrors[`contractor-${index}-contractorAddress`] ? `contractorAddress-${index}-error` : undefined}
                         />
+                        {validationErrors[`contractor-${index}-contractorAddress`] && (
+                          <p id={`contractorAddress-${index}-error`} className="text-sm text-red-500 flex items-center gap-1">
+                            <AlertCircle className="h-4 w-4" />
+                            {validationErrors[`contractor-${index}-contractorAddress`]}
+                          </p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -558,9 +426,19 @@ EQUIPAMENTOS (COMODATO):
                             value={contractor.legalRepresentative}
                             onChange={(e) => handleContractorChange(index, 'legalRepresentative', e.target.value)}
                             placeholder="Digite o nome do representante"
-                            className="border-medical-primary/20 focus:border-medical-primary"
+                            className={cn(
+                              "border-medical-primary/20 focus:border-medical-primary",
+                              validationErrors[`contractor-${index}-legalRepresentative`] && "border-red-500"
+                            )}
                             required
+                            aria-describedby={validationErrors[`contractor-${index}-legalRepresentative`] ? `legalRepresentative-${index}-error` : undefined}
                           />
+                          {validationErrors[`contractor-${index}-legalRepresentative`] && (
+                            <p id={`legalRepresentative-${index}-error`} className="text-sm text-red-500 flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4" />
+                              {validationErrors[`contractor-${index}-legalRepresentative`]}
+                            </p>
+                          )}
                         </div>
                         
                         <div className="space-y-2">
@@ -570,11 +448,25 @@ EQUIPAMENTOS (COMODATO):
                           <Input
                             id={`representativeCPF-${index}`}
                             value={contractor.representativeCPF}
-                            onChange={(e) => handleContractorChange(index, 'representativeCPF', e.target.value)}
+                            onChange={(e) => {
+                              const formatted = formatCPF(e.target.value);
+                              handleContractorChange(index, 'representativeCPF', formatted);
+                            }}
                             placeholder="000.000.000-00"
-                            className="border-medical-primary/20 focus:border-medical-primary"
+                            className={cn(
+                              "border-medical-primary/20 focus:border-medical-primary",
+                              validationErrors[`contractor-${index}-representativeCPF`] && "border-red-500"
+                            )}
                             required
+                            maxLength={14}
+                            aria-describedby={validationErrors[`contractor-${index}-representativeCPF`] ? `representativeCPF-${index}-error` : undefined}
                           />
+                          {validationErrors[`contractor-${index}-representativeCPF`] && (
+                            <p id={`representativeCPF-${index}-error`} className="text-sm text-red-500 flex items-center gap-1">
+                              <AlertCircle className="h-4 w-4" />
+                              {validationErrors[`contractor-${index}-representativeCPF`]}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </Card>
@@ -595,10 +487,20 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.equipment43}
                       onChange={(e) => handleInputChange('equipment43', e.target.value)}
                       placeholder="0"
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.equipment43 && "border-red-500"
+                      )}
                       min="0"
                       required
+                      aria-describedby={validationErrors.equipment43 ? "equipment43-error" : undefined}
                     />
+                    {validationErrors.equipment43 && (
+                      <p id="equipment43-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.equipment43}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -611,10 +513,20 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.equipment55}
                       onChange={(e) => handleInputChange('equipment55', e.target.value)}
                       placeholder="0"
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.equipment55 && "border-red-500"
+                      )}
                       min="0"
                       required
+                      aria-describedby={validationErrors.equipment55 ? "equipment55-error" : undefined}
                     />
+                    {validationErrors.equipment55 && (
+                      <p id="equipment55-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.equipment55}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -627,17 +539,27 @@ EQUIPAMENTOS (COMODATO):
                       value={contractData.players}
                       onChange={(e) => handleInputChange('players', e.target.value)}
                       placeholder="0"
-                      className="border-medical-primary/20 focus:border-medical-primary"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        validationErrors.players && "border-red-500"
+                      )}
                       min="0"
                       required
+                      aria-describedby={validationErrors.players ? "players-error" : undefined}
                     />
+                    {validationErrors.players && (
+                      <p id="players-error" className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {validationErrors.players}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div className="pt-6 border-t border-medical-primary/10">
                   <Button
                     type="button"
-                    onClick={sendToWebhook}
+                    onClick={handleSendToWebhook}
                     disabled={isSendingToWebhook}
                     className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 h-12 transition-all duration-200 flex items-center justify-center gap-2"
                   >
