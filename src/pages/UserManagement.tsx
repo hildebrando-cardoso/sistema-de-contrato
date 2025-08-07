@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Filter, Plus, Edit, Trash2, Eye, Shield, User, Mail, Calendar, MapPin, Smartphone } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Filter, Plus, Edit, Trash2, Eye, Shield, User, Mail, Calendar, MapPin, Smartphone, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
@@ -20,6 +23,14 @@ interface User {
   contractsGenerated: number;
   location: string;
   phone: string;
+}
+
+interface NewUserForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: "admin" | "user";
 }
 
 const mockUsers: User[] = [
@@ -139,6 +150,24 @@ export const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
+  const [newUserForm, setNewUserForm] = useState<NewUserForm>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    role: "user"
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState<NewUserForm>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    role: "user"
+  });
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -168,6 +197,197 @@ export const UserManagement = () => {
       }
       return user;
     }));
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!newUserForm.firstName.trim()) {
+      errors.firstName = "Nome é obrigatório";
+    }
+
+    if (!newUserForm.lastName.trim()) {
+      errors.lastName = "Sobrenome é obrigatório";
+    }
+
+    if (!newUserForm.email.trim()) {
+      errors.email = "Email é obrigatório";
+    } else if (!validateEmail(newUserForm.email)) {
+      errors.email = "Email inválido";
+    }
+
+    // Verificar se o email já existe
+    const emailExists = users.some(user => user.email.toLowerCase() === newUserForm.email.toLowerCase());
+    if (emailExists) {
+      errors.email = "Este email já está em uso";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleInputChange = (field: keyof NewUserForm, value: string) => {
+    setNewUserForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Limpar erro do campo
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCreateUser = () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    const newUser: User = {
+      id: Date.now().toString(),
+      name: `${newUserForm.firstName} ${newUserForm.lastName}`,
+      email: newUserForm.email,
+      role: newUserForm.role,
+      status: "ativo",
+      createdAt: new Date().toLocaleDateString('pt-BR'),
+      lastLogin: "Nunca",
+      contractsGenerated: 0,
+      location: "Não informado",
+      phone: newUserForm.phone || "Não informado"
+    };
+
+    setUsers(prev => [...prev, newUser]);
+    
+    // Reset form
+    setNewUserForm({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      role: "user"
+    });
+    setFormErrors({});
+    setIsNewUserModalOpen(false);
+
+    toast({
+      title: "Usuário criado com sucesso!",
+      description: `${newUser.name} foi adicionado ao sistema.`,
+    });
+  };
+
+  const handleCancelCreate = () => {
+    setNewUserForm({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      role: "user"
+    });
+    setFormErrors({});
+    setIsNewUserModalOpen(false);
+  };
+
+  const handleEditUser = (user: User) => {
+    const [firstName, ...lastNameParts] = user.name.split(' ');
+    const lastName = lastNameParts.join(' ');
+    
+    setEditingUser(user);
+    setEditForm({
+      firstName: firstName || "",
+      lastName: lastName || "",
+      email: user.email,
+      phone: user.phone === "Não informado" ? "" : user.phone,
+      role: user.role
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditInputChange = (field: keyof NewUserForm, value: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Limpar erro do campo
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateEditForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!editForm.firstName.trim()) {
+      errors.firstName = "Nome é obrigatório";
+    }
+
+    if (!editForm.lastName.trim()) {
+      errors.lastName = "Sobrenome é obrigatório";
+    }
+
+    if (!editForm.email.trim()) {
+      errors.email = "Email é obrigatório";
+    } else if (!validateEmail(editForm.email)) {
+      errors.email = "Email inválido";
+    }
+
+    // Verificar se o email já existe (exceto para o usuário sendo editado)
+    const emailExists = users.some(user => 
+      user.email.toLowerCase() === editForm.email.toLowerCase() && 
+      user.id !== editingUser?.id
+    );
+    if (emailExists) {
+      errors.email = "Este email já está em uso";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSaveEdit = () => {
+    if (!validateEditForm() || !editingUser) {
+      return;
+    }
+
+    const updatedUser: User = {
+      ...editingUser,
+      name: `${editForm.firstName} ${editForm.lastName}`,
+      email: editForm.email,
+      role: editForm.role,
+      phone: editForm.phone || "Não informado"
+    };
+
+    setUsers(prev => prev.map(user => 
+      user.id === editingUser.id ? updatedUser : user
+    ));
+
+    setIsEditModalOpen(false);
+    setEditingUser(null);
+    setFormErrors({});
+
+    toast({
+      title: "Usuário atualizado com sucesso!",
+      description: `${updatedUser.name} foi atualizado no sistema.`,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditModalOpen(false);
+    setEditingUser(null);
+    setFormErrors({});
   };
 
   return (
@@ -211,11 +431,263 @@ export const UserManagement = () => {
             <span className="hidden sm:inline">Filtros</span>
           </Button>
           
-          <Button className="flex items-center gap-2 text-sm">
-            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Novo Usuário</span>
-            <span className="sm:hidden">Novo</span>
-          </Button>
+          <Dialog open={isNewUserModalOpen} onOpenChange={setIsNewUserModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2 text-sm">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Novo Usuário</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Cadastrar Novo Usuário
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-sm">Nome *</Label>
+                    <Input
+                      id="firstName"
+                      value={newUserForm.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      placeholder="Digite o nome"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        formErrors.firstName && "border-red-500"
+                      )}
+                    />
+                    {formErrors.firstName && (
+                      <p className="text-sm text-red-500">{formErrors.firstName}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-sm">Sobrenome *</Label>
+                    <Input
+                      id="lastName"
+                      value={newUserForm.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      placeholder="Digite o sobrenome"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        formErrors.lastName && "border-red-500"
+                      )}
+                    />
+                    {formErrors.lastName && (
+                      <p className="text-sm text-red-500">{formErrors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUserForm.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="usuario@exemplo.com"
+                    className={cn(
+                      "border-medical-primary/20 focus:border-medical-primary",
+                      formErrors.email && "border-red-500"
+                    )}
+                  />
+                  {formErrors.email && (
+                    <p className="text-sm text-red-500">{formErrors.email}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm">Telefone</Label>
+                  <Input
+                    id="phone"
+                    value={newUserForm.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    placeholder="(11) 99999-9999"
+                    className="border-medical-primary/20 focus:border-medical-primary"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-sm">Tipo de Usuário</Label>
+                  <Select 
+                    value={newUserForm.role} 
+                    onValueChange={(value: "admin" | "user") => handleInputChange('role', value)}
+                  >
+                    <SelectTrigger className="border-medical-primary/20 focus:border-medical-primary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Usuário Padrão
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Administrador
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Administradores têm acesso completo ao sistema, mas sem permissão de exclusão de dados.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelCreate}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleCreateUser}
+                  className="flex items-center gap-2 bg-medical-primary hover:bg-medical-primary/90"
+                >
+                  <Save className="h-4 w-4" />
+                  Cadastrar Usuário
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal de Edição */}
+          <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Edit className="h-5 w-5" />
+                  Editar Usuário
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editFirstName" className="text-sm">Nome *</Label>
+                    <Input
+                      id="editFirstName"
+                      value={editForm.firstName}
+                      onChange={(e) => handleEditInputChange('firstName', e.target.value)}
+                      placeholder="Digite o nome"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        formErrors.firstName && "border-red-500"
+                      )}
+                    />
+                    {formErrors.firstName && (
+                      <p className="text-sm text-red-500">{formErrors.firstName}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="editLastName" className="text-sm">Sobrenome *</Label>
+                    <Input
+                      id="editLastName"
+                      value={editForm.lastName}
+                      onChange={(e) => handleEditInputChange('lastName', e.target.value)}
+                      placeholder="Digite o sobrenome"
+                      className={cn(
+                        "border-medical-primary/20 focus:border-medical-primary",
+                        formErrors.lastName && "border-red-500"
+                      )}
+                    />
+                    {formErrors.lastName && (
+                      <p className="text-sm text-red-500">{formErrors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="editEmail" className="text-sm">Email *</Label>
+                  <Input
+                    id="editEmail"
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => handleEditInputChange('email', e.target.value)}
+                    placeholder="usuario@exemplo.com"
+                    className={cn(
+                      "border-medical-primary/20 focus:border-medical-primary",
+                      formErrors.email && "border-red-500"
+                    )}
+                  />
+                  {formErrors.email && (
+                    <p className="text-sm text-red-500">{formErrors.email}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="editPhone" className="text-sm">Telefone</Label>
+                  <Input
+                    id="editPhone"
+                    value={editForm.phone}
+                    onChange={(e) => handleEditInputChange('phone', e.target.value)}
+                    placeholder="(11) 99999-9999"
+                    className="border-medical-primary/20 focus:border-medical-primary"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="editRole" className="text-sm">Tipo de Usuário</Label>
+                  <Select 
+                    value={editForm.role} 
+                    onValueChange={(value: "admin" | "user") => handleEditInputChange('role', value)}
+                  >
+                    <SelectTrigger className="border-medical-primary/20 focus:border-medical-primary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Usuário Padrão
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Administrador
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Administradores têm acesso completo ao sistema, mas sem permissão de exclusão de dados.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  className="flex items-center gap-2 bg-medical-primary hover:bg-medical-primary/90"
+                >
+                  <Save className="h-4 w-4" />
+                  Salvar Alterações
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -388,6 +860,7 @@ export const UserManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => handleEditUser(user)}
                     className="flex items-center gap-2 text-xs"
                   >
                     <Edit className="h-3 w-3 sm:h-4 sm:w-4" />

@@ -36,6 +36,84 @@ const formatCPF = (value: string): string => {
   return numbers.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 };
 
+const formatCurrency = (value: string): string => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '');
+  
+  // Se não há números, retorna vazio
+  if (numbers === '') return '';
+  
+  // Converte para número e divide por 100 para considerar centavos
+  const number = parseInt(numbers, 10) / 100;
+  
+  // Formata como moeda brasileira
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(number);
+};
+
+const parseCurrency = (value: string): number => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '');
+  
+  // Se não há números, retorna 0
+  if (numbers === '') return 0;
+  
+  // Converte para número e divide por 100 para considerar centavos
+  return parseInt(numbers, 10) / 100;
+};
+
+// Função para limpar valor monetário para cálculos
+const cleanCurrencyForCalculation = (value: string): number => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '');
+  
+  // Se não há números, retorna 0
+  if (numbers === '') return 0;
+  
+  // Converte para número e divide por 100 para considerar centavos
+  // Exemplo: "129,00" -> "12900" -> 129.00
+  return parseInt(numbers, 10) / 100;
+};
+
+// Função para converter valor monetário para número exato
+const parseExactCurrency = (value: string): number => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '');
+  
+  // Se não há números, retorna 0
+  if (numbers === '') return 0;
+  
+  // Converte para número exato (não divide por 100)
+  // Exemplo: "129,00" -> "12900" -> 12900
+  return parseInt(numbers, 10);
+};
+
+// Funções de cálculo
+const calculateTotalPoints = (equipment43: string, equipment55: string, players: string): number => {
+  const points43 = parseInt(equipment43) || 0;
+  const points55 = parseInt(equipment55) || 0;
+  const pointsPlayers = parseInt(players) || 0;
+  
+  return points43 + points55 + pointsPlayers;
+};
+
+const calculateImplementationValue = (totalPoints: number, unitValue: number): number => {
+  return totalPoints * unitValue;
+};
+
+const formatCurrencyDisplay = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+};
+
 const validateCNPJ = (cnpj: string): boolean => {
   const cleanCNPJ = cnpj.replace(/\D/g, '');
   if (cleanCNPJ.length !== 14) return false;
@@ -139,6 +217,31 @@ export const useContractForm = () => {
   const [isSendingToWebhook, setIsSendingToWebhook] = useState(false);
 
   // Memoizar valores calculados
+  // Cálculos computados
+  const totalPoints = useMemo(() => {
+    return calculateTotalPoints(contractData.equipment43, contractData.equipment55, contractData.players);
+  }, [contractData.equipment43, contractData.equipment55, contractData.players]);
+
+  const unitValue = useMemo(() => {
+    // Calcular valor unitário baseado no valor da implantação digitado pelo usuário
+    const implementationValueNumber = parseExactCurrency(contractData.implementationValue);
+    const totalPointsNumber = totalPoints;
+    
+    if (totalPointsNumber > 0 && implementationValueNumber > 0) {
+      return implementationValueNumber / totalPointsNumber;
+    }
+    
+    return 0; // Valor padrão se não houver dados suficientes
+  }, [contractData.implementationValue, totalPoints]);
+
+  const calculatedImplementationValue = useMemo(() => {
+    return calculateImplementationValue(totalPoints, unitValue);
+  }, [totalPoints, unitValue]);
+
+  const formattedImplementationValue = useMemo(() => {
+    return formatCurrencyDisplay(calculatedImplementationValue);
+  }, [calculatedImplementationValue]);
+
   const formProgress = useMemo(() => {
     const totalFields = 11 + (contractData.contractors.length * 5);
     let filledFields = 0;
@@ -175,19 +278,28 @@ export const useContractForm = () => {
 
     // Lógica para calcular valores baseados no plano selecionado
     if (field === 'contractedPlan') {
-      const implementationValue = "R$ 249,00"; // Valor fixo por ponto
       let monthlyValue = "";
 
       if (value === "cuidar-educar-especialidades") {
         monthlyValue = "R$ 0,00";
       } else if (value === "cuidar-educar-exclusivo") {
         monthlyValue = "R$ 199,00";
+      } else if (value === "cuidar-educar-padrao") {
+        monthlyValue = "R$ 0,00";
       }
 
       setContractData(prev => ({
         ...prev,
-        implementationValue,
         monthlyValue
+      }));
+    }
+
+    // Para campos de valor monetário, aplicar máscara
+    if (field === 'implementationValue' || field === 'monthlyValue') {
+      const formattedValue = formatCurrency(value);
+      setContractData(prev => ({
+        ...prev,
+        [field]: formattedValue
       }));
     }
   }, []);
@@ -313,7 +425,7 @@ export const useContractForm = () => {
     setIsSendingToWebhook(true);
     
     try {
-      const webhookUrl = 'https://webhook.n8n.smartdoutor.com.br/webhook-test/gerar-contrato-tv-doutor';
+      const webhookUrl = 'https://webhook.n8n.smartdoutor.com.br/webhook/gerar-contrato-tv-doutor';
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -321,7 +433,16 @@ export const useContractForm = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contractData,
+          contractData: {
+            ...contractData,
+            totalPoints: totalPoints || 0,
+            unitValue: unitValue || 0,
+            calculatedImplementationValue: calculatedImplementationValue || 0,
+            formattedImplementationValue: formattedImplementationValue || 'R$ 0,00',
+            // Valores limpos para cálculos
+            cleanImplementationValue: parseExactCurrency(contractData.implementationValue),
+            cleanUnitValue: unitValue || 0
+          },
           timestamp: new Date().toISOString(),
           source: 'Sistema de Contrato - TV Doutor'
         }),
@@ -348,7 +469,7 @@ export const useContractForm = () => {
     } finally {
       setIsSendingToWebhook(false);
     }
-  }, [contractData, validateForm]);
+  }, [contractData, validateForm, totalPoints, unitValue, calculatedImplementationValue, formattedImplementationValue, cleanCurrencyForCalculation, parseExactCurrency]);
 
   const generateContract = useCallback(async () => {
     if (!validateForm()) {
@@ -430,5 +551,14 @@ EQUIPAMENTOS (COMODATO):
     generateContract,
     formatCNPJ,
     formatCPF,
+    formatCurrency,
+    parseCurrency,
+    cleanCurrencyForCalculation,
+    parseExactCurrency,
+    // Valores calculados
+    totalPoints,
+    unitValue,
+    calculatedImplementationValue,
+    formattedImplementationValue,
   };
 }; 

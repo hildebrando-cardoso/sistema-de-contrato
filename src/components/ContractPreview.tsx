@@ -209,7 +209,7 @@ export const ContractPreview = ({ contract, contractData, onBack }: ContractPrev
               <div><strong>Equipamentos 43":</strong> {contractData.equipment43}</div>
               <div><strong>Equipamentos 55":</strong> {contractData.equipment55}</div>
               <div><strong>Players:</strong> {contractData.players}</div>
-              <div><strong>Implantação:</strong> R$ {contractData.implementationValue}</div>
+              <div><strong>Implantação:</strong> {contractData.implementationValue || "R$ 0,00"}</div>
               <div><strong>Mensalidade:</strong> R$ {contractData.monthlyValue}</div>
             </div>
             

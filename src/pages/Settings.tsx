@@ -16,7 +16,6 @@ import {
   Bell, 
   Palette, 
   Database, 
-  Globe, 
   Save,
   Eye,
   EyeOff,
@@ -63,15 +62,10 @@ export const Settings = () => {
     dataRetention: "2",
     debugMode: false,
     
-    // Integrações
-    webhookUrl: "https://webhook.n8n.smartdoutor.com.br/webhook-test/gerar-contrato-tv-doutor",
-    apiKey: "sk-1234567890abcdef",
-    enableAnalytics: true,
-    enableLogs: true
+
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
 
   const handleSaveSettings = () => {
     toast({
@@ -91,7 +85,7 @@ export const Settings = () => {
 
   // Definir abas disponíveis baseado no tipo de usuário
   const availableTabs = isAdmin 
-    ? ["profile", "security", "notifications", "appearance", "system", "integrations"]
+    ? ["profile", "security", "notifications", "appearance", "system"]
     : ["profile", "security", "appearance"];
 
   const getTabDisplayName = (tab: string) => {
@@ -100,8 +94,7 @@ export const Settings = () => {
       security: "Segurança", 
       notifications: "Notificações",
       appearance: "Aparência",
-      system: "Sistema",
-      integrations: "Integrações"
+      system: "Sistema"
     };
     return tabNames[tab] || tab;
   };
@@ -112,8 +105,7 @@ export const Settings = () => {
       security: Shield,
       notifications: Bell,
       appearance: Palette,
-      system: Database,
-      integrations: Globe
+      system: Database
     };
     return icons[tab] || SettingsIcon;
   };
@@ -474,82 +466,7 @@ export const Settings = () => {
             </TabsContent>
           )}
 
-          {/* Integrações (Apenas Admin) */}
-          {isAdmin && (
-            <TabsContent value="integrations" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Integrações Externas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="webhookUrl" className="text-sm">URL do Webhook</Label>
-                    <Input
-                      id="webhookUrl"
-                      value={settings.webhookUrl}
-                      onChange={(e) => setSettings({...settings, webhookUrl: e.target.value})}
-                      className="text-sm"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="apiKey" className="text-sm">Chave da API</Label>
-                    <div className="relative">
-                      <Input
-                        id="apiKey"
-                        type={showApiKey ? "text" : "password"}
-                        value={settings.apiKey}
-                        onChange={(e) => setSettings({...settings, apiKey: e.target.value})}
-                        className="text-sm pr-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                      >
-                        {showApiKey ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-sm">Analytics</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Coleta dados de uso para melhorias
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.enableAnalytics}
-                      onCheckedChange={(checked) => setSettings({...settings, enableAnalytics: checked})}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-sm">Logs de Sistema</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Registra atividades do sistema
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.enableLogs}
-                      onCheckedChange={(checked) => setSettings({...settings, enableLogs: checked})}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+
         </Tabs>
 
         {/* Botões de Ação */}

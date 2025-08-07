@@ -38,8 +38,8 @@ const ContractProcessing = () => {
 
   const handleDownload = () => {
     if (status.downloadUrl) {
-      // Abrir o link do PDF em uma nova aba
-      window.open(status.downloadUrl, '_blank');
+      // Abrir o link do Google Drive em uma nova aba
+      window.open(status.downloadUrl, '_blank', 'noopener,noreferrer');
 
       toast({
         title: "Link aberto",

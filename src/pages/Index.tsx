@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
+import { Sidebar } from "@/components/Sidebar";
+import { Layout } from "@/components/Layout";
 import { ContractForm } from "@/components/ContractForm";
 import { ContractPreview } from "@/components/ContractPreview";
 
@@ -41,25 +42,17 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-medical-light/10 to-accent/20">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
-        {generatedContract && contractData ? (
-          <ContractPreview 
-            contract={generatedContract} 
-            contractData={contractData}
-            onBack={handleBackToForm}
-          />
-        ) : (
-          <ContractForm onContractGenerated={handleContractGenerated} />
-        )}
-      </main>
-      
-      <footer className="text-center py-6 text-muted-foreground text-sm border-t border-border/50">
-        <p>© 2025 TV Doutor - Sistema de Geração de Contratos</p>
-      </footer>
-    </div>
+    <Layout title="Geração de Contratos" subtitle="Sistema de Contratos Digitais - TV Doutor">
+      {generatedContract && contractData ? (
+        <ContractPreview 
+          contract={generatedContract} 
+          contractData={contractData}
+          onBack={handleBackToForm}
+        />
+      ) : (
+        <ContractForm onContractGenerated={handleContractGenerated} />
+      )}
+    </Layout>
   );
 };
 

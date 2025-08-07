@@ -37,7 +37,7 @@ export const useContractProcessing = (contractId?: string) => {
       const mockResponse: WebhookResponse = {
         status: 'success',
         message: 'Contrato processado com sucesso',
-        downloadUrl: 'https://exemplo.com/contrato.pdf',
+        downloadUrl: 'https://drive.google.com/drive/folders/1RSgS4O0dOR4jw2UIYw3U8SKyetw8Bikj?usp=sharing',
         contractId: id
       };
 
@@ -86,7 +86,7 @@ export const useContractProcessing = (contractId?: string) => {
     }
   }, [pollingInterval]);
 
-  // Função para simular o processo (para desenvolvimento)
+  // Função para simular o processo (para desenvolvimento) - AGORA COM 30 SEGUNDOS
   const simulateProcessing = useCallback(async () => {
     const steps = [
       { message: 'Validando dados do contrato...', progress: 10 },
@@ -98,6 +98,10 @@ export const useContractProcessing = (contractId?: string) => {
       { message: 'Contrato gerado com sucesso!', progress: 100 }
     ];
 
+    // Calcular tempo por etapa para totalizar exatamente 30 segundos
+    const totalTime = 30000; // 30 segundos em milissegundos
+    const timePerStep = Math.floor(totalTime / steps.length);
+
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
       setStatus(prev => ({
@@ -106,20 +110,20 @@ export const useContractProcessing = (contractId?: string) => {
         progress: step.progress
       }));
 
-      // Aguardar entre cada etapa
-      await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+      // Aguardar o tempo calculado para cada etapa
+      await new Promise(resolve => setTimeout(resolve, timePerStep));
     }
 
-    // Simular conclusão bem-sucedida
+    // Simular conclusão bem-sucedida com o link do Google Drive
     setTimeout(() => {
       setStatus({
         status: 'completed',
         message: 'Contrato gerado com sucesso!',
         progress: 100,
-        downloadUrl: 'https://exemplo.com/contrato.pdf',
+        downloadUrl: 'https://drive.google.com/drive/folders/1RSgS4O0dOR4jw2UIYw3U8SKyetw8Bikj?usp=sharing',
         contractId: contractId || 'mock-contract-id'
       });
-    }, 2000);
+    }, 500);
   }, [contractId]);
 
   // Função para processar resposta do webhook do n8n

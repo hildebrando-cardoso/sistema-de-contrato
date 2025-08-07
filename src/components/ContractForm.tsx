@@ -34,6 +34,10 @@ export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
     generateContract,
     formatCNPJ,
     formatCPF,
+    totalPoints,
+    unitValue,
+    calculatedImplementationValue,
+    formattedImplementationValue,
   } = useContractForm();
 
   const handleSendToWebhook = async () => {
@@ -102,6 +106,9 @@ export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
                         </SelectItem>
                         <SelectItem value="cuidar-educar-exclusivo">
                           Cuidar e Educar – Exclusivo
+                        </SelectItem>
+                        <SelectItem value="cuidar-educar-padrao">
+                          Cuidar e Educar – Padrão
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -172,14 +179,13 @@ export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
                       id="implementationValue"
                       value={contractData.implementationValue}
                       onChange={(e) => handleInputChange('implementationValue', e.target.value)}
-                      placeholder="R$ 249,00"
+                      placeholder="R$ 0,00"
                       className={cn(
                         "border-medical-primary/20 focus:border-medical-primary",
                         validationErrors.implementationValue && "border-red-500"
                       )}
                       required
-                      readOnly
-                      aria-describedby={validationErrors.implementationValue ? "implementationValue-error" : undefined}
+                      aria-describedby={validationErrors.implementationValue ? "implementationValue-error" : "implementationValue-info"}
                     />
                     {validationErrors.implementationValue && (
                       <p id="implementationValue-error" className="text-sm text-red-500 flex items-center gap-1">
@@ -203,7 +209,6 @@ export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
                         validationErrors.monthlyValue && "border-red-500"
                       )}
                       required
-                      readOnly
                       aria-describedby={validationErrors.monthlyValue ? "monthlyValue-error" : undefined}
                     />
                     {validationErrors.monthlyValue && (
