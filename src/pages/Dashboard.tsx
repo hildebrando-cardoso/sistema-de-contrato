@@ -2,6 +2,7 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { 
   FileText, 
   Users, 
@@ -12,6 +13,21 @@ import {
 } from "lucide-react";
 
 export const Dashboard = () => {
+  const navigate = useNavigate();
+
+  const handleNewContract = () => {
+    console.log('Navegando para /contract');
+    navigate('/contract');
+  };
+
+  const handleViewCalendar = () => {
+    navigate('/contracts');
+  };
+
+  const handleViewReports = () => {
+    navigate('/reports');
+  };
+
   const stats = [
     {
       title: "Contratos Gerados",
@@ -134,15 +150,26 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              <Button className="flex items-center gap-2 text-sm sm:text-base">
+              <Button 
+                onClick={handleNewContract}
+                className="flex items-center gap-2 text-sm sm:text-base"
+              >
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                 Novo Contrato
               </Button>
-              <Button variant="outline" className="flex items-center gap-2 text-sm sm:text-base">
+              <Button 
+                onClick={handleViewCalendar}
+                variant="outline" 
+                className="flex items-center gap-2 text-sm sm:text-base"
+              >
                 <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                 Ver Calendário
               </Button>
-              <Button variant="outline" className="flex items-center gap-2 text-sm sm:text-base sm:col-span-2 lg:col-span-1">
+              <Button 
+                onClick={handleViewReports}
+                variant="outline" 
+                className="flex items-center gap-2 text-sm sm:text-base sm:col-span-2 lg:col-span-1"
+              >
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
                 Relatórios
               </Button>
