@@ -23,6 +23,8 @@ const queryClient = new QueryClient();
 const HomeRedirect = () => {
   const { isAuthenticated, isLoading } = useAuth();
   
+  console.log('HomeRedirect - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
+  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

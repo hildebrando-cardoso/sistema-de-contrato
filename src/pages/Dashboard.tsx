@@ -14,8 +14,12 @@ import {
 
 export const Dashboard = () => {
   const navigate = useNavigate();
+  
+  console.log('Dashboard renderizado');
 
   const handleNewContract = () => {
+    console.log('Botão Novo Contrato clicado');
+    console.log('Navegando para /contract');
     navigate('/contract');
   };
 
@@ -150,7 +154,10 @@ export const Dashboard = () => {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               <Button 
-                onClick={handleNewContract}
+                onClick={() => {
+                  console.log('Botão clicado diretamente');
+                  handleNewContract();
+                }}
                 className="flex items-center gap-2 text-sm sm:text-base"
               >
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
