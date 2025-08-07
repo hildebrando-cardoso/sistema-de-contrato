@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -151,10 +152,15 @@ const getPlanText = (plan: string) => {
 };
 
 export const ContractManagement = () => {
+  const navigate = useNavigate();
   const [contracts, setContracts] = useState<Contract[]>(mockContracts);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+
+  const handleNewContract = () => {
+    navigate('/contract');
+  };
 
   const filteredContracts = contracts.filter(contract => {
     const matchesSearch = contract.contractorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,7 +242,10 @@ PRAZO DE CONTRATO: ${contract.contractTerm} meses
             <span className="hidden sm:inline">Filtros</span>
           </Button>
           
-          <Button className="flex items-center gap-2 text-sm">
+          <Button 
+            onClick={handleNewContract}
+            className="flex items-center gap-2 text-sm"
+          >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Novo Contrato</span>
             <span className="sm:hidden">Novo</span>

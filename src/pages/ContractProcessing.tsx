@@ -49,7 +49,7 @@ const ContractProcessing = () => {
   };
 
   const handleBackToForm = () => {
-    navigate('/');
+    navigate('/contract');
   };
 
   const getStatusIcon = () => {
