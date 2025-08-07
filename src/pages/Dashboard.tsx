@@ -16,7 +16,6 @@ export const Dashboard = () => {
   const navigate = useNavigate();
 
   const handleNewContract = () => {
-    console.log('Navegando para /contract');
     navigate('/contract');
   };
 
