@@ -2,10 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import ContractProcessing from "./pages/ContractProcessing";
 import Login from "./pages/Login";
@@ -18,6 +19,12 @@ import { Reports } from "./pages/Reports";
 
 const queryClient = new QueryClient();
 
+// Componente para redirecionar baseado na autenticação
+const HomeRedirect = () => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -27,9 +34,14 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
-            {/* Rotas públicas */}
-            <Route path="/" element={<Index />} />
+            {/* Rota principal - redireciona para login ou dashboard */}
+            <Route path="/" element={<HomeRedirect />} />
+            
+            {/* Rota de login */}
             <Route path="/login" element={<Login />} />
+            
+            {/* Rota pública para geração de contratos */}
+            <Route path="/contract" element={<Index />} />
             <Route path="/processing" element={<ContractProcessing />} />
             
             {/* Rotas protegidas */}

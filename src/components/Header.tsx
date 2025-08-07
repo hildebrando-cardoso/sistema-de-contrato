@@ -1,13 +1,21 @@
 import tvDoutorLogo from "@/assets/tv-Doutor-logotipo-negativo.png";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, LogIn } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export const Header = () => {
   const { theme, setTheme } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  const handleLoginClick = () => {
+    navigate('/login');
   };
 
   return (
@@ -21,18 +29,31 @@ export const Header = () => {
               className="h-16 w-auto object-contain"
             />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleTheme}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            {theme === 'light' ? (
-              <Moon className="h-5 w-5" />
-            ) : (
-              <Sun className="h-5 w-5" />
+          <div className="flex items-center space-x-2">
+            {!isAuthenticated && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLoginClick}
+                className="text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Entrar
+              </Button>
             )}
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
         <div className="text-center mt-4">
           <h1 className="text-2xl md:text-3xl font-bold text-primary-foreground">

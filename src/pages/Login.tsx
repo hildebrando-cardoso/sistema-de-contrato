@@ -39,7 +39,8 @@ const Login = () => {
       }
 
       if (success) {
-        navigate(from, { replace: true });
+        // Redireciona para dashboard após login bem-sucedido
+        navigate('/dashboard', { replace: true });
       } else {
         setError(isRegister ? 'Erro ao criar conta. Tente novamente.' : 'Email ou senha incorretos.');
       }
