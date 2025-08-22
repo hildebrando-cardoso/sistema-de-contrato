@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Plus, Send, AlertCircle } from "lucide-react";
+import { Trash2, Plus, Send, AlertCircle, Calculator, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContractForm } from "@/hooks/use-contract-form";
 import { FormProgressIndicator } from "@/components/FormProgressIndicator";
@@ -15,6 +15,125 @@ import { FormProgressIndicator } from "@/components/FormProgressIndicator";
 interface ContractFormProps {
   onContractGenerated: (contract: string, data: any) => void;
 }
+
+// Componente de resumo de valores
+const ValueSummary = ({ 
+  equipmentSubtotals, 
+  calculatedImplementationValue, 
+  formattedImplementationValue,
+  userImplementationValue,
+  userMonthlyValue,
+  contractTotal,
+  formattedContractTotal,
+  hasImplementationValueMismatch,
+  unitValue,
+  totalEquipmentQuantity
+}: any) => {
+  // Função para formatar valores monetários de forma segura
+  const formatCurrency = (value: number) => {
+    if (isNaN(value) || !isFinite(value)) {
+      return "R$ 0,00";
+    }
+    return new Intl.NumberFormat('pt-BR', { 
+      style: 'currency', 
+      currency: 'BRL' 
+    }).format(value);
+  };
+
+  return (
+    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+          <Calculator className="h-5 w-5" />
+          Resumo de Valores
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Informações do cálculo */}
+        <div className="space-y-2">
+          <h4 className="font-semibold text-sm text-blue-700">Informações do Cálculo:</h4>
+          <div className="grid grid-cols-1 gap-2 text-sm">
+            <div className="flex justify-between">
+              <span>Total de equipamentos:</span>
+              <span className="font-medium">{totalEquipmentQuantity} unidades</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Valor da implantação por equipamento:</span>
+              <span className="font-medium">
+                {formatCurrency(userImplementationValue)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Valor total da implantação:</span>
+              <span className="font-medium">
+                {formatCurrency(calculatedImplementationValue)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Subtotais por equipamento */}
+        <div className="space-y-2">
+          <h4 className="font-semibold text-sm text-blue-700">Subtotais por Equipamento:</h4>
+          <div className="grid grid-cols-1 gap-2 text-sm">
+            <div className="flex justify-between">
+              <span>Equipamentos 43" ({equipmentSubtotals.equipment43.quantity} un.):</span>
+              <span className="font-medium">
+                {formatCurrency(equipmentSubtotals.equipment43.subtotal)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Equipamentos 55" ({equipmentSubtotals.equipment55.quantity} un.):</span>
+              <span className="font-medium">
+                {formatCurrency(equipmentSubtotals.equipment55.subtotal)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Players ({equipmentSubtotals.players.quantity} un.):</span>
+              <span className="font-medium">
+                {formatCurrency(equipmentSubtotals.players.subtotal)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Valor calculado vs digitado */}
+        <div className="space-y-2">
+          <h4 className="font-semibold text-sm text-blue-700">Valor de Implantação:</h4>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span>Valor calculado:</span>
+              <span className="font-medium text-green-600">{formattedImplementationValue}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Valor digitado por equipamento:</span>
+              <span className="font-medium">
+                {formatCurrency(userImplementationValue)}
+              </span>
+            </div>
+            {hasImplementationValueMismatch && (
+              <div className="flex items-center gap-1 text-orange-600 text-xs">
+                <Info className="h-3 w-3" />
+                <span>Diferença detectada - verifique os valores</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Total do contrato */}
+        <div className="pt-3 border-t border-blue-200">
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-blue-800">Total do Contrato:</span>
+            <span className="text-lg font-bold text-blue-800">{formattedContractTotal}</span>
+          </div>
+          <div className="text-xs text-blue-600 mt-1">
+            Implantação + Plano Mensal
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
   const navigate = useNavigate();
@@ -34,10 +153,17 @@ export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
     generateContract,
     formatCNPJ,
     formatCPF,
-    totalPoints,
-    unitValue,
+    // Valores calculados reestruturados
+    equipmentSubtotals,
     calculatedImplementationValue,
     formattedImplementationValue,
+    userImplementationValue,
+    userMonthlyValue,
+    contractTotal,
+    formattedContractTotal,
+    hasImplementationValueMismatch,
+    unitValue,
+    totalEquipmentQuantity
   } = useContractForm();
 
   const handleSendToWebhook = async () => {
@@ -173,7 +299,7 @@ export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="implementationValue" className="text-sm font-medium text-foreground">
-                      Valor da Implantação *
+                      Valor da Implantação por equipamento *
                     </Label>
                     <Input
                       id="implementationValue"
@@ -560,6 +686,20 @@ export const ContractForm = ({ onContractGenerated }: ContractFormProps) => {
                     )}
                   </div>
                 </div>
+
+                {/* Resumo de Valores */}
+                <ValueSummary 
+                  equipmentSubtotals={equipmentSubtotals}
+                  calculatedImplementationValue={calculatedImplementationValue}
+                  formattedImplementationValue={formattedImplementationValue}
+                  userImplementationValue={userImplementationValue}
+                  userMonthlyValue={userMonthlyValue}
+                  contractTotal={contractTotal}
+                  formattedContractTotal={formattedContractTotal}
+                  hasImplementationValueMismatch={hasImplementationValueMismatch}
+                  unitValue={unitValue}
+                  totalEquipmentQuantity={totalEquipmentQuantity}
+                />
 
                 <div className="pt-6 border-t border-medical-primary/10">
                   <Button

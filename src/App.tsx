@@ -15,7 +15,7 @@ import NotFound from "./pages/NotFound";
 import { ContractManagement } from "./pages/ContractManagement";
 import { UserManagement } from "./pages/UserManagement";
 import { Settings } from "./pages/Settings";
-import { Reports } from "./pages/Reports";
+import Reports from "./pages/Reports";
 
 const queryClient = new QueryClient();
 
