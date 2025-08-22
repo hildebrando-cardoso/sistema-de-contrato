@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { toast } from "@/hooks/use-toast";
+import { createContract, parseContractFormData, type ContractFormData } from "@/lib/contractsApi";
 
 interface Contractor {
   contractorName: string;
@@ -639,9 +640,6 @@ export const useContractForm = () => {
     setIsGenerating(true);
     
     try {
-      // Simular processamento
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       // Gerar texto do contrato
       const contractorsList = contractData.contractors.map((contractor, index) => 
         `CONTRATANTE ${index + 1}: ${contractor.contractorName}
@@ -679,16 +677,33 @@ EQUIPAMENTOS (COMODATO):
 [Aqui seria inserido o texto completo do contrato com as 19 cláusulas e Anexo I]
       `.trim();
 
+      // Converter dados do formulário para o formato do banco
+      const contractDataForDB = parseContractFormData(contractData as ContractFormData);
+      contractDataForDB.generated_contract_text = generatedContract;
+
+      // Salvar no Supabase
+      const result = await createContract(contractDataForDB);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao salvar contrato');
+      }
+
       toast({
-        title: "Contrato gerado com sucesso!",
-        description: "O contrato foi gerado e está pronto para visualização.",
+        title: "Contrato salvo com sucesso!",
+        description: "O contrato foi gerado e salvo no sistema.",
       });
 
-      return { success: true, contract: generatedContract, data: contractData };
-    } catch (error) {
+      return { 
+        success: true, 
+        contract: generatedContract, 
+        data: contractData, 
+        contractId: result.contractId 
+      };
+    } catch (error: any) {
+      console.error('Erro ao gerar/salvar contrato:', error);
       toast({
         title: "Erro ao gerar contrato",
-        description: "Ocorreu um erro durante a geração. Tente novamente.",
+        description: error.message || "Ocorreu um erro durante a geração. Tente novamente.",
         variant: "destructive",
       });
       return { success: false, error };

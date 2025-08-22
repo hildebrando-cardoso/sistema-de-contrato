@@ -1,0 +1,25 @@
+# INSTRUÇÕES PARA CONFIGURAR SUPABASE
+
+## 1. Crie um arquivo .env.local na raiz do projeto com:
+
+VITE_SUPABASE_URL=https://SEU_PROJETO_ID.supabase.co
+VITE_SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA_AQUI
+
+## 2. Para encontrar essas informações no Supabase:
+
+1. Acesse: https://supabase.com/dashboard
+2. Selecione seu projeto
+3. Vá em: Settings → API
+4. Copie:
+   - Project URL → VITE_SUPABASE_URL
+   - anon/public key → VITE_SUPABASE_ANON_KEY
+
+## 3. Exemplo de arquivo .env.local:
+
+VITE_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTY4MjQwNzIwMCwiZXhwIjoxOTk3OTgzMjAwfQ.EXEMPLO_DE_TOKEN
+
+## 4. IMPORTANTE:
+- O arquivo .env.local deve estar na RAIZ do projeto (mesmo nível do package.json)
+- Não adicione aspas nas variáveis
+- Reinicie o servidor após criar o arquivo

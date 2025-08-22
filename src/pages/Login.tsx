@@ -42,7 +42,7 @@ const Login = () => {
         // Redireciona para dashboard após login bem-sucedido
         navigate('/dashboard', { replace: true });
       } else {
-        setError(isRegister ? 'Erro ao criar conta. Tente novamente.' : 'Email ou senha incorretos.');
+        setError(isRegister ? 'Erro ao criar conta. Verifique os dados e tente novamente.' : 'Email ou senha incorretos. Verifique suas credenciais.');
       }
     } catch (error) {
       setError('Ocorreu um erro. Tente novamente.');
@@ -159,13 +159,7 @@ const Login = () => {
               </button>
             </div>
 
-            {!isRegister && (
-              <div className="text-center text-xs text-muted-foreground">
-                <p>Credenciais de teste:</p>
-                <p>Admin: admin@tvdoutor.com / admin123</p>
-                <p>Usuário: user@tvdoutor.com / user123</p>
-              </div>
-            )}
+
           </form>
         </CardContent>
       </Card>
